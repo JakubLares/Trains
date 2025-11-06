@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚆 Train Delay Notifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚆 Train Delay Notifier</h1>
+            <p class="subtitle">Monitor Czech Railways trains and get notified before arrival</p>
+        </header>
+
+        <!-- Status Card -->
+        <div class="card status-card" id="statusCard">
+            <h2>📊 Monitoring Status</h2>
+            <div class="status-content">
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot inactive"></span>
+                    <span id="statusText">Not monitoring</span>
+                </div>
+
+                <div id="trainInfo" class="train-info" style="display: none;">
+                    <div class="info-row">
+                        <span class="label">Train:</span>
+                        <span id="trainNumber">-</span> <span id="trainName">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Destination:</span>
+                        <span id="destination">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Scheduled Arrival:</span>
+                        <span id="scheduledArrival">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Current Delay:</span>
+                        <span id="currentDelay" class="delay-badge">+0 min</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Expected Arrival:</span>
+                        <span id="actualArrival" class="highlight">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Last Check:</span>
+                        <span id="lastCheck">-</span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="startBtn" class="btn btn-primary" onclick="startMonitoring()">
+                        ▶️ Start Monitoring
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger" onclick="stopMonitoring()" style="display: none;">
+                        ⏹️ Stop Monitoring
+                    </button>
+                    <button class="btn btn-secondary" onclick="refreshStatus()">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Card -->
+        <div class="card config-card">
+            <h2>⚙️ Configuration</h2>
+            <form id="configForm" onsubmit="saveConfig(event)">
+                <div class="form-group">
+                    <label for="trainUrl">Train URL from CD.cz:</label>
+                    <input type="url" id="trainUrl" name="train_url" required
+                           placeholder="https://www.cd.cz/vlak/140/...">
+                    <small>Go to cd.cz, search for your train, click "All information about the train", copy the URL</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="destination">Destination Station:</label>
+                    <input type="text" id="destination" name="destination_station" required
+                           placeholder="e.g., Praha, Brno">
+                    <small>Name of the station where you want to be notified</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="notifyBefore">Notify Before (minutes):</label>
+                        <input type="number" id="notifyBefore" name="notify_minutes_before"
+                               value="60" min="5" max="300" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="checkInterval">Check Every (minutes):</label>
+                        <input type="number" id="checkInterval" name="check_interval_minutes"
+                               value="5" min="1" max="60" required>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">💾 Save Configuration</button>
+                    <button type="button" class="btn btn-secondary" onclick="testConnection()">
+                        🔍 Test Connection
+                    </button>
+                </div>
+            </form>
+
+            <div id="testResult" class="message" style="display: none;"></div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="card help-card">
+            <h2>💡 How to Use</h2>
+            <ol>
+                <li>Go to <a href="https://www.cd.cz" target="_blank">cd.cz</a> and search for your train</li>
+                <li>Click on your train and then "All information about the train"</li>
+                <li>Copy the URL from your browser and paste it above</li>
+                <li>Enter your destination station name</li>
+                <li>Configure when you want to be notified (e.g., 60 minutes before arrival)</li>
+                <li>Click "Test Connection" to verify it works</li>
+                <li>Click "Start Monitoring" to begin</li>
+                <li>You'll receive a desktop notification at the configured time before arrival</li>
+            </ol>
+        </div>
+
+        <footer>
+            <p>Made with ❤️ for Czech Railways travelers |
+               <a href="https://github.com" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
