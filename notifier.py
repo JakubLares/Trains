@@ -4,6 +4,8 @@ Sends notifications about train arrivals
 """
 
 import logging
+import platform
+import subprocess
 from datetime import datetime
 from typing import Optional
 
@@ -12,7 +14,7 @@ try:
     PLYER_AVAILABLE = True
 except ImportError:
     PLYER_AVAILABLE = False
-    logging.warning("plyer not available, notifications will only be logged")
+    logging.warning("plyer not available, will use system notifications")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,6 +26,35 @@ class Notifier:
     def __init__(self, app_name: str = "Train Delay Notifier"):
         self.app_name = app_name
         self.last_notification = None
+        self.system = platform.system()
+
+    def _send_macos_notification(self, title: str, message: str) -> bool:
+        """Send notification using macOS native osascript"""
+        try:
+            # Use AppleScript to send notification
+            script = f'''
+                display notification "{message}" with title "{title}" sound name "default"
+            '''
+            subprocess.run(['osascript', '-e', script], check=True, capture_output=True)
+            return True
+        except Exception as e:
+            logger.error(f"macOS notification failed: {e}")
+            return False
+
+    def _send_linux_notification(self, title: str, message: str, timeout: int = 10) -> bool:
+        """Send notification using Linux notify-send"""
+        try:
+            subprocess.run([
+                'notify-send',
+                title,
+                message,
+                '-t', str(timeout * 1000),
+                '-a', self.app_name
+            ], check=True, capture_output=True)
+            return True
+        except Exception as e:
+            logger.error(f"Linux notification failed: {e}")
+            return False
 
     def send_notification(
         self,
@@ -44,6 +75,19 @@ class Notifier:
         """
         logger.info(f"NOTIFICATION: {title} - {message}")
 
+        # Try native system notifications first
+        if self.system == 'Darwin':  # macOS
+            success = self._send_macos_notification(title, message)
+            if success:
+                self.last_notification = datetime.now()
+                return True
+        elif self.system == 'Linux':
+            success = self._send_linux_notification(title, message, timeout)
+            if success:
+                self.last_notification = datetime.now()
+                return True
+
+        # Fall back to plyer if available
         if PLYER_AVAILABLE:
             try:
                 plyer_notification.notify(
@@ -55,11 +99,11 @@ class Notifier:
                 self.last_notification = datetime.now()
                 return True
             except Exception as e:
-                logger.error(f"Error sending notification: {e}")
-                return False
-        else:
-            logger.warning("Notification system not available (plyer not installed)")
-            return False
+                logger.error(f"Plyer notification failed: {e}")
+
+        # If all else fails, just log
+        logger.warning("No notification system available - notification only logged to console")
+        return False
 
     def notify_train_arrival(
         self,
