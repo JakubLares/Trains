@@ -2,7 +2,7 @@
 
 A Python application that monitors Czech Railways (České dráhy) trains and sends desktop notifications before arrival, including real-time delay information.
 
-> **⚠️ Important Note:** The CD.cz website currently blocks automated requests. See [SETUP_NOTES.md](SETUP_NOTES.md) for solutions including Selenium browser automation or alternative approaches.
+> ✅ **Status: Fully Functional!** The app successfully fetches train data using Selenium, extracts delays from JavaScript, and sends notifications!
 
 ## Features
 

@@ -37,3 +37,15 @@ config.json
 
 # Logs
 *.log
+
+# Debug/analysis files (used during development)
+analyze_html.py
+analyze_list_items.py
+check_delays.py
+extract_delay_json.py
+find_delay_data.py
+show_station_structure.py
+test_selenium.py
+page_debug.html
+selenium_debug.html
+selenium_page.html
