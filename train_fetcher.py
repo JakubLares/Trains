@@ -158,23 +158,26 @@ class TrainFetcher:
         # Find all stations and times
         stations = []
 
-        # CD.cz uses a table or list structure for stations
-        # We'll look for common patterns
-        station_elements = soup.find_all(['tr', 'div'], class_=re.compile(r'station|stop|station-row', re.I))
+        # CD.cz uses <ul class='train-schedule'> with <li class='train-schedule__item'>
+        schedule_list = soup.find('ul', class_='train-schedule')
 
-        if not station_elements:
-            # Try alternative parsing - look for station names and times
-            station_elements = soup.find_all(['div', 'tr'], attrs={'data-station': True})
+        if schedule_list:
+            logger.info("Found train-schedule list")
+            station_elements = schedule_list.find_all('li', class_='train-schedule__item')
+            logger.info(f"Found {len(station_elements)} station elements")
 
-        if not station_elements:
-            # Fallback: search for any elements containing time patterns
-            logger.warning("Could not find station elements with standard selectors, using fallback")
+            for elem in station_elements:
+                station_info = self._parse_cd_station_element(elem)
+                if station_info:
+                    stations.append(station_info)
+        else:
+            logger.warning("Could not find train-schedule list, trying fallback")
+            # Fallback to old method
             station_elements = self._find_time_elements(soup)
-
-        for elem in station_elements:
-            station_info = self._parse_station_element(elem)
-            if station_info:
-                stations.append(station_info)
+            for elem in station_elements:
+                station_info = self._parse_station_element(elem)
+                if station_info:
+                    stations.append(station_info)
 
         # Extract train name/title
         train_name = self._extract_train_name(soup)
@@ -223,8 +226,59 @@ class TrainFetcher:
 
         return elements[:50]  # Limit to avoid too many elements
 
+    def _parse_cd_station_element(self, elem) -> Optional[Dict]:
+        """Parse a CD.cz train-schedule__item element"""
+        try:
+            # Extract station name from h3.train-schedule__station-title
+            name_elem = elem.find('h3', class_='train-schedule__station-title')
+            if not name_elem:
+                return None
+
+            station_name = name_elem.get_text(strip=True)
+
+            # Get full text to extract times
+            full_text = elem.get_text(strip=True)
+
+            # Extract arrival time (PŘÍJEZD followed by time)
+            arrival_time = None
+            arrival_match = re.search(r'PŘÍJEZD\s*(\d{1,2}):(\d{2})', full_text)
+            if arrival_match:
+                arrival_time = f"{arrival_match.group(1).zfill(2)}:{arrival_match.group(2)}"
+
+            # Extract departure time (ODJEZD followed by time)
+            departure_time = None
+            departure_match = re.search(r'ODJEZD\s*(\d{1,2}):(\d{2})', full_text)
+            if departure_match:
+                departure_time = f"{departure_match.group(1).zfill(2)}:{departure_match.group(2)}"
+
+            # Look for delay information (zpoždění +X min)
+            delay_minutes = 0
+            delay_match = re.search(r'zpoždění\s*(\+|\-)?(\d+)\s*min', full_text, re.I)
+            if delay_match:
+                sign = -1 if delay_match.group(1) == '-' else 1
+                delay_minutes = sign * int(delay_match.group(2))
+
+            # Also check for standalone delay pattern
+            if delay_minutes == 0:
+                delay_match = re.search(r'(\+|\-)(\d+)\s*min', full_text)
+                if delay_match:
+                    sign = -1 if delay_match.group(1) == '-' else 1
+                    delay_minutes = sign * int(delay_match.group(2))
+
+            return {
+                'name': station_name,
+                'arrival': arrival_time,
+                'departure': departure_time,
+                'delay_minutes': delay_minutes,
+                'raw_text': full_text[:200]  # Keep some raw text for debugging
+            }
+
+        except Exception as e:
+            logger.debug(f"Could not parse CD.cz station element: {e}")
+            return None
+
     def _parse_station_element(self, elem) -> Optional[Dict]:
-        """Parse a single station element to extract station info"""
+        """Parse a single station element to extract station info (fallback method)"""
         try:
             text = elem.get_text(strip=True)
 
