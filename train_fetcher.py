@@ -155,6 +155,10 @@ class TrainFetcher:
         # Extract train number from URL
         train_number = self._extract_train_number(url)
 
+        # Extract overall train delay from JavaScript
+        train_delay_minutes = self._extract_train_delay(soup)
+        logger.info(f"Overall train delay: {train_delay_minutes} minutes")
+
         # Find all stations and times
         stations = []
 
@@ -169,6 +173,9 @@ class TrainFetcher:
             for elem in station_elements:
                 station_info = self._parse_cd_station_element(elem)
                 if station_info:
+                    # Apply train delay if station doesn't have specific delay
+                    if station_info['delay_minutes'] == 0 and train_delay_minutes > 0:
+                        station_info['delay_minutes'] = train_delay_minutes
                     stations.append(station_info)
         else:
             logger.warning("Could not find train-schedule list, trying fallback")
@@ -177,6 +184,8 @@ class TrainFetcher:
             for elem in station_elements:
                 station_info = self._parse_station_element(elem)
                 if station_info:
+                    if station_info['delay_minutes'] == 0 and train_delay_minutes > 0:
+                        station_info['delay_minutes'] = train_delay_minutes
                     stations.append(station_info)
 
         # Extract train name/title
@@ -187,6 +196,7 @@ class TrainFetcher:
             'train_name': train_name,
             'url': url,
             'stations': stations,
+            'overall_delay': train_delay_minutes,
             'fetched_at': datetime.now().isoformat(),
         }
 
@@ -212,6 +222,31 @@ class TrainFetcher:
             return meta_title.get('content', '')
 
         return ''
+
+    def _extract_train_delay(self, soup: BeautifulSoup) -> int:
+        """Extract overall train delay from JavaScript model data"""
+        try:
+            # Find script tags containing the model variable
+            scripts = soup.find_all('script', type='text/javascript')
+
+            for script in scripts:
+                if script.string and 'var model' in script.string:
+                    script_text = script.string
+
+                    # Look for the delay value in trainDetailInfo
+                    # Pattern: "delay":12
+                    delay_match = re.search(r'"delay"\s*:\s*(\d+)', script_text)
+                    if delay_match:
+                        delay = int(delay_match.group(1))
+                        logger.info(f"Found train delay in JavaScript: {delay} minutes")
+                        return delay
+
+            logger.debug("No delay information found in JavaScript")
+            return 0
+
+        except Exception as e:
+            logger.warning(f"Error extracting train delay: {e}")
+            return 0
 
     def _find_time_elements(self, soup: BeautifulSoup) -> List:
         """Fallback method to find elements containing time information"""
