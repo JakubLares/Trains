@@ -226,12 +226,24 @@ def run_monitor():
 
 
 if __name__ == '__main__':
+    import sys
+
+    # Default port, can be overridden with command line argument
+    port = 5001
+    if len(sys.argv) > 1:
+        try:
+            port = int(sys.argv[1])
+        except ValueError:
+            print("Invalid port number. Using default: 5001")
+
     print("\n" + "="*60)
     print("🚆 Train Delay Notifier - Web UI")
     print("="*60)
     print("\nStarting web server...")
     print("\n📱 Open your browser and go to:")
-    print("   http://localhost:5000")
+    print(f"   http://localhost:{port}")
+    print("\n💡 Tip: Port 5000 is used by macOS AirPlay Receiver")
+    print(f"   We're using port {port} instead")
     print("\n"+"="*60+"\n")
 
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
+    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False)
