@@ -1,0 +1,10 @@
+{
+  "train_url": "https://www.cd.cz/vlak/140/6.11.2025/5617915/14.34/5457076/19.36/",
+  "destination_station": "Praha",
+  "notify_minutes_before": 75,
+  "check_interval_minutes": 5,
+  "notification_settings": {
+    "app_name": "Train Delay Notifier",
+    "sound_enabled": true
+  }
+}
