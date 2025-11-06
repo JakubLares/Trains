@@ -32,12 +32,13 @@ logger = logging.getLogger(__name__)
 class TrainFetcher:
     """Fetches and parses train information from CD.cz"""
 
-    def __init__(self, use_selenium=None):
+    def __init__(self, use_selenium=True):
         """
         Initialize train fetcher
 
         Args:
             use_selenium: True/False to force selenium on/off, None for auto (fallback)
+                         Default: True (CD.cz blocks simple requests)
         """
         self.use_selenium = use_selenium
         self.session = requests.Session()
